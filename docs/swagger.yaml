@@ -1,0 +1,97 @@
+basePath: /api/v1
+definitions:
+  handlers.APIError:
+    properties:
+      code:
+        type: integer
+      details:
+        type: string
+      message:
+        type: string
+    type: object
+  handlers.blockRewardResponse:
+    properties:
+      reward:
+        type: string
+      status:
+        type: string
+    type: object
+  handlers.syncDutiesResponse:
+    properties:
+      validators:
+        items:
+          type: string
+        type: array
+    type: object
+info:
+  contact:
+    email: tsvetan.dimitrov23@gmail.com
+    name: Tsvetan Dimitrov
+  description: Provides validator block rewards and sync duties information.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Ethereum Validator API
+  version: "1.0"
+paths:
+  /blockreward/{slot}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves block reward details for a given slot.
+      parameters:
+      - description: Slot number
+        in: path
+        name: slot
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.blockRewardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.APIError'
+      summary: Get Block Reward
+      tags:
+      - BlockReward
+  /syncduties/{slot}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves validators assigned for sync committee duties for a given
+        slot.
+      parameters:
+      - description: Slot number
+        in: path
+        name: slot
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.syncDutiesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.APIError'
+      summary: Get Sync Duties
+      tags:
+      - SyncDuties
+swagger: "2.0"
