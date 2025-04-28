@@ -36,7 +36,7 @@ make install
 make all
 ```
 
-**Step 3.** Edit newly created `.env` file with the needed values (check [Required env variables](#required-env-variables) section):
+**Step 3.** Edit newly created `.env` file with the needed values:
 
 ```shell
 vim <project_root>/server/.env

@@ -56,7 +56,14 @@ func GetBlockRewardHandler(svc BlockRewardService) http.HandlerFunc {
 
 		result, err := svc.GetBlockReward(r.Context(), slot)
 		if err != nil {
-			writeAPIError(w, http.StatusInternalServerError, "Failed to retrieve block reward", err)
+			switch {
+			case errors.Is(err, blockreward.ErrSlotMissedOrDoesNotExist):
+				writeAPIError(w, http.StatusNotFound, "Slot was missed", err)
+			case errors.Is(err, blockreward.ErrSlotInFuture):
+				writeAPIError(w, http.StatusBadRequest, "Slot is in the future", err)
+			default:
+				writeAPIError(w, http.StatusInternalServerError, "Failed to retrieve block reward", err)
+			}
 			return
 		}
 

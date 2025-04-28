@@ -2,6 +2,7 @@ package blockreward
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"strings"
 
@@ -12,6 +13,11 @@ import (
 const (
 	statusVanilla = "vanilla"
 	statusMEV     = "mev"
+)
+
+var (
+	ErrSlotMissedOrDoesNotExist = errors.New("slot was missed or does not exist")
+	ErrSlotInFuture             = errors.New("slot is in the future")
 )
 
 var mevRelaySignatures = []string{
@@ -49,6 +55,14 @@ func NewService(client *ethclient.Client) *Service {
 func (s *Service) GetBlockReward(ctx context.Context, slot uint64) (*Result, error) {
 	block, err := s.Client.BlockByNumber(ctx, new(big.Int).SetUint64(slot))
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil, ErrSlotMissedOrDoesNotExist
+		}
+
+		if strings.Contains(err.Error(), "block not available") {
+			return nil, ErrSlotInFuture
+		}
+
 		return nil, pkgerrors.Wrap(err, "fetch block by number")
 	}
 
