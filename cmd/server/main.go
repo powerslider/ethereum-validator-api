@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 
+	"github.com/joho/godotenv"
+
 	"github.com/ethereum/go-ethereum/ethclient"
 	pkgerrors "github.com/pkg/errors"
 	"github.com/powerslider/ethereum-validator-api/pkg/blockreward"
@@ -34,6 +36,11 @@ func main() {
 }
 
 func run(ctx context.Context) error {
+	err := godotenv.Load()
+	if err != nil {
+		return pkgerrors.Wrap(err, "load .env file")
+	}
+
 	// Load config.
 	cfg, err := config.Load()
 	if err != nil {

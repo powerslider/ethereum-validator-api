@@ -47,7 +47,7 @@ run-server:
 
 .PHONY: compose-up
 compose-up:
-	@docker compose --env-file .env up -d
+	@docker compose --env-file .env up --build -d
 
 .PHONY: api-docs
 api-docs:
