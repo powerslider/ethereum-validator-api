@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/powerslider/ethereum-validator-api/pkg/blockreward"
+	"github.com/powerslider/ethereum-validator-api/pkg/syncduties"
 	"net/http"
 	"strconv"
 
@@ -45,8 +47,8 @@ type syncDutiesResponse struct {
 func GetBlockRewardHandler(svc BlockRewardService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slotStr := mux.Vars(r)["slot"]
-		slot, err := strconv.ParseUint(slotStr, 10, 64)
 
+		slot, err := strconv.ParseUint(slotStr, 10, 64)
 		if err != nil {
 			writeAPIError(w, http.StatusBadRequest, "Invalid slot number", err)
 			return
@@ -85,8 +87,8 @@ func GetBlockRewardHandler(svc BlockRewardService) http.HandlerFunc {
 func GetSyncDutiesHandler(svc SyncDutyService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slotStr := mux.Vars(r)["slot"]
-		slot, err := strconv.ParseUint(slotStr, 10, 64)
 
+		slot, err := strconv.ParseUint(slotStr, 10, 64)
 		if err != nil {
 			writeAPIError(w, http.StatusBadRequest, "Invalid slot number", err)
 			return
@@ -94,7 +96,15 @@ func GetSyncDutiesHandler(svc SyncDutyService) http.HandlerFunc {
 
 		validators, err := svc.GetSyncDuties(r.Context(), slot)
 		if err != nil {
-			writeAPIError(w, http.StatusInternalServerError, "Failed to retrieve sync duties", err)
+			switch {
+			case errors.Is(err, syncduties.ErrDutiesNotFound):
+				writeAPIError(w, http.StatusNotFound, "Sync duties not found", err)
+			case errors.Is(err, syncduties.ErrSlotTooFarInFuture):
+				writeAPIError(w, http.StatusBadRequest, "Slot is too far in the future", err)
+			default:
+				writeAPIError(w, http.StatusInternalServerError, "Failed to retrieve sync duties", err)
+			}
+
 			return
 		}
 

@@ -15,7 +15,10 @@ import (
 	"github.com/powerslider/ethereum-validator-api/pkg/beacon"
 )
 
-var ErrDutiesNotFound = errors.New("sync duties not found for given epoch")
+var (
+	ErrDutiesNotFound     = errors.New("sync duties not found for given epoch")
+	ErrSlotTooFarInFuture = errors.New("slot is too far in the future")
+)
 
 type Service struct {
 	Client       *http.Client
@@ -34,6 +37,7 @@ func NewService(consensusURL string) *Service {
 func (s *Service) GetSyncDuties(ctx context.Context, slot uint64) ([]string, error) {
 	epoch := slot / 32
 
+	// 1. Check cache first.
 	epochStr := strconv.FormatUint(epoch, 10)
 	if cached, found := s.Cache.Get(epochStr); found {
 		if validators, ok := cached.([]string); ok {
@@ -43,23 +47,24 @@ func (s *Service) GetSyncDuties(ctx context.Context, slot uint64) ([]string, err
 		return nil, errors.New("invalid cache type for sync duties")
 	}
 
-	validators, err := s.fetchSyncDuties(ctx, epoch)
+	// 2. Get the current epoch.
+	currentEpoch, err := s.GetCurrentEpoch(ctx)
 	if err != nil {
-		if !errors.Is(err, ErrDutiesNotFound) {
-			return nil, err
-		}
-
-		currentEpoch, err := s.GetCurrentEpoch(ctx)
-		if err != nil {
-			return nil, pkgerrors.Wrap(err, "could not get current epoch after 404")
-		}
-
-		validators, err = s.fetchSyncDuties(ctx, currentEpoch)
-		if err != nil {
-			return nil, pkgerrors.Wrap(err, "fetch duties even after fallback")
-		}
+		return nil, pkgerrors.Wrap(err, "get current epoch")
 	}
 
+	// 3. If requested epoch is too far ahead, return 400.
+	if epoch > currentEpoch+1 {
+		return nil, ErrSlotTooFarInFuture
+	}
+
+	// 4. Fetch duties from consensus client.
+	validators, err := s.fetchSyncDuties(ctx, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	// 5. Cache result.
 	s.Cache.Set(epochStr, validators, 5*time.Minute)
 
 	return validators, nil
@@ -80,7 +85,9 @@ func (s *Service) GetCurrentEpoch(ctx context.Context) (uint64, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return 0, pkgerrors.Wrap(pkgerrors.Errorf("unexpected status code when fetching head: %d", resp.StatusCode), "fetch head header")
+		return 0, pkgerrors.Wrap(
+			pkgerrors.Errorf("unexpected status code when fetching head: %d", resp.StatusCode),
+			"fetch head header")
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -117,7 +124,9 @@ func (s *Service) fetchSyncDuties(ctx context.Context, epoch uint64) ([]string, 
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, pkgerrors.Wrap(pkgerrors.Errorf("unexpected status code: %d", resp.StatusCode), "fetch sync duties")
+		return nil, pkgerrors.Wrap(
+			pkgerrors.Errorf("unexpected status code: %d", resp.StatusCode),
+			"fetch sync duties")
 	}
 
 	body, err := io.ReadAll(resp.Body)
