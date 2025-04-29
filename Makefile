@@ -49,6 +49,10 @@ run-server:
 compose-up:
 	@docker compose --env-file .env up --build -d
 
+.PHONY: compose-down
+compose-down:
+	@docker compose down --volumes --remove-orphans
+
 .PHONY: api-docs
 api-docs:
 	@echo ">>> Generating Swagger API documentation..."
