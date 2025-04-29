@@ -54,7 +54,7 @@ func run(ctx context.Context) error {
 	defer ethClient.Close()
 
 	// Initialize services, router and server.
-	blockRewardSvc := blockreward.NewService(ethClient)
+	blockRewardSvc := blockreward.NewService(ethClient, cfg.RPCEndpoint)
 	syncDutySvc := syncduties.NewService(cfg.RPCEndpoint)
 
 	r := handlers.SetupRouter(blockRewardSvc, syncDutySvc)

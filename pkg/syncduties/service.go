@@ -80,7 +80,7 @@ func (s *Service) getCurrentSlot(ctx context.Context) (uint64, error) {
 		return 0, pkgerrors.Wrap(err, "read head response body")
 	}
 
-	var parsed beacon.HeadResponse
+	var parsed BeaconHeaderResponse
 	if err := json.Unmarshal(body, &parsed); err != nil {
 		return 0, pkgerrors.Wrap(err, "parse head response")
 	}
@@ -108,23 +108,25 @@ func (s *Service) fetchSyncCommitteeIndexes(ctx context.Context, slot uint64) ([
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		var syncCommitteeErr beacon.SyncCommitteeError
-		if err = json.Unmarshal(body, &syncCommitteeErr); err != nil {
+		var apiError beacon.APIError
+		if err = json.Unmarshal(body, &apiError); err != nil {
 			return nil, pkgerrors.Wrap(err, "parse sync committee error")
 		}
 
 		if resp.StatusCode == http.StatusNotFound {
-			return nil, pkgerrors.Wrap(ErrDutiesNotFound, syncCommitteeErr.Message)
+			return nil, pkgerrors.Wrap(ErrDutiesNotFound, apiError.Message)
 		}
 
-		slotWasMissed := syncCommitteeErr.Code == http.StatusBadRequest &&
-			strings.Contains(syncCommitteeErr.Message, "is not activated for Altair")
+		slotWasMissed := apiError.Code == http.StatusBadRequest &&
+			strings.Contains(apiError.Message, "is not activated for Altair")
 		if slotWasMissed {
-			return nil, pkgerrors.Wrap(ErrSlotWasMissed, syncCommitteeErr.Message)
+			return nil, pkgerrors.Wrap(ErrSlotWasMissed, apiError.Message)
 		}
+
+		return nil, pkgerrors.Wrap(beacon.ErrUnexpectedStatusCode(resp.StatusCode), apiError.Message)
 	}
 
-	var parsed beacon.SyncCommitteeResponse
+	var parsed SyncCommitteeResponse
 	if err = json.Unmarshal(body, &parsed); err != nil {
 		return nil, pkgerrors.Wrap(err, "parse sync committee response")
 	}
@@ -197,7 +199,7 @@ func (s *Service) fetchValidatorChunk(ctx context.Context, slot uint64, ids []st
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, pkgerrors.Wrap(
-			pkgerrors.Errorf("unexpected status code: %d", resp.StatusCode),
+			beacon.ErrUnexpectedStatusCode(resp.StatusCode),
 			"fetch validator chunk response")
 	}
 
@@ -206,7 +208,7 @@ func (s *Service) fetchValidatorChunk(ctx context.Context, slot uint64, ids []st
 		return nil, pkgerrors.Wrap(err, "read validator response body")
 	}
 
-	var parsed beacon.ValidatorResponse
+	var parsed ValidatorListResponse
 	if err := json.Unmarshal(body, &parsed); err != nil {
 		return nil, pkgerrors.Wrap(err, "parse validator response")
 	}
