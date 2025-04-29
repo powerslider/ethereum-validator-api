@@ -15,8 +15,8 @@ func SetupRouter(blockRewardSvc *blockreward.Service, syncDutySvc *syncduties.Se
 
 	// API v1 subrouter
 	apiV1 := r.PathPrefix("/api/v1").Subrouter()
-	apiV1.HandleFunc("/blockreward/{slot}", GetBlockRewardHandler(blockRewardSvc)).Methods("GET")
-	apiV1.HandleFunc("/syncduties/{slot}", GetSyncDutiesHandler(syncDutySvc)).Methods("GET")
+	apiV1.HandleFunc("/blockreward/{slot:[0-9]+}", GetBlockRewardHandler(blockRewardSvc)).Methods("GET")
+	apiV1.HandleFunc("/syncduties/{slot:[0-9]+}", GetSyncDutiesHandler(syncDutySvc)).Methods("GET")
 	// Swagger endpoint
 	r.PathPrefix("/swagger/").Handler(httpswagger.WrapHandler)
 

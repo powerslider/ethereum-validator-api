@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/powerslider/ethereum-validator-api/pkg/blockreward"
 	"github.com/powerslider/ethereum-validator-api/pkg/syncduties"
 	"net/http"
@@ -64,6 +65,7 @@ func GetBlockRewardHandler(svc BlockRewardService) http.HandlerFunc {
 			default:
 				writeAPIError(w, http.StatusInternalServerError, "Failed to retrieve block reward", err)
 			}
+
 			return
 		}
 
@@ -103,13 +105,17 @@ func GetSyncDutiesHandler(svc SyncDutyService) http.HandlerFunc {
 
 		validators, err := svc.GetSyncDuties(r.Context(), slot)
 		if err != nil {
-			switch {
-			case errors.Is(err, syncduties.ErrDutiesNotFound):
-				writeAPIError(w, http.StatusNotFound, "Sync duties not found", err)
-			case errors.Is(err, syncduties.ErrSlotTooFarInFuture):
-				writeAPIError(w, http.StatusBadRequest, "Slot is too far in the future", err)
+			wrappedErr := err
+
+			switch e := pkgerrors.Cause(wrappedErr); {
+			case errors.Is(e, syncduties.ErrDutiesNotFound):
+				writeAPIError(w, http.StatusNotFound, "Sync duties not found", wrappedErr)
+			case errors.Is(e, syncduties.ErrSlotTooFarInFuture):
+				writeAPIError(w, http.StatusBadRequest, "Slot is too far in the future", wrappedErr)
+			case errors.Is(e, syncduties.ErrSlotWasMissed):
+				writeAPIError(w, http.StatusBadRequest, "Slot was missed", wrappedErr)
 			default:
-				writeAPIError(w, http.StatusInternalServerError, "Failed to retrieve sync duties", err)
+				writeAPIError(w, http.StatusInternalServerError, "Failed to retrieve sync duties", wrappedErr)
 			}
 
 			return

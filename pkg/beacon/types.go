@@ -17,10 +17,29 @@ type Message struct {
 	Slot uint64 `json:"slot,string"`
 }
 
-type SyncDutiesResponse struct {
-	Data []SyncDuty `json:"data"`
+type ValidatorResponse struct {
+	Data []ValidatorData `json:"data"`
 }
 
-type SyncDuty struct {
-	ValidatorPubkey string `json:"validator_pubkey"`
+type ValidatorData struct {
+	Index     string        `json:"index"`
+	Validator ValidatorInfo `json:"validator"`
+}
+
+type ValidatorInfo struct {
+	Pubkey string `json:"pubkey"`
+}
+
+// SyncCommitteeResponse defines the parsed structure for sync committee duties.
+type SyncCommitteeResponse struct {
+	Data SyncCommitteeData `json:"data"`
+}
+
+type SyncCommitteeData struct {
+	Validators []string `json:"validators"`
+}
+
+type SyncCommitteeError struct {
+	Message string `json:"message"`
+	Code    int    `json:"code"`
 }
