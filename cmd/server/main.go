@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/powerslider/ethereum-validator-api/pkg/beacon"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -54,8 +55,9 @@ func run(ctx context.Context) error {
 	defer ethClient.Close()
 
 	// Initialize services, router and server.
-	blockRewardSvc := blockreward.NewService(ethClient, cfg.RPCEndpoint)
-	syncDutySvc := syncduties.NewService(cfg.RPCEndpoint)
+	beaconSvc := beacon.NewService(cfg.RPCEndpoint)
+	blockRewardSvc := blockreward.NewService(ethClient, beaconSvc)
+	syncDutySvc := syncduties.NewService(beaconSvc)
 
 	r := handlers.SetupRouter(blockRewardSvc, syncDutySvc)
 	srv := server.NewServer(cfg, r)

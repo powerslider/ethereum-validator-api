@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	pkgerrors "github.com/pkg/errors"
+	"github.com/powerslider/ethereum-validator-api/pkg/beacon"
 	"github.com/powerslider/ethereum-validator-api/pkg/blockreward"
-	"github.com/powerslider/ethereum-validator-api/pkg/syncduties"
 	"net/http"
 	"strconv"
 
@@ -60,9 +60,9 @@ func GetBlockRewardHandler(svc BlockRewardService) http.HandlerFunc {
 			wrappedErr := err
 
 			switch e := pkgerrors.Cause(wrappedErr); {
-			case errors.Is(e, blockreward.ErrSlotMissedOrDoesNotExist):
+			case errors.Is(e, beacon.ErrSlotMissedOrDoesNotExist):
 				writeAPIError(w, http.StatusNotFound, "Slot was missed", wrappedErr)
-			case errors.Is(e, blockreward.ErrSlotInFuture):
+			case errors.Is(e, beacon.ErrSlotInFuture):
 				writeAPIError(w, http.StatusBadRequest, "Slot is in the future", wrappedErr)
 			default:
 				writeAPIError(w, http.StatusInternalServerError, "Failed to retrieve block reward", wrappedErr)
@@ -110,11 +110,11 @@ func GetSyncDutiesHandler(svc SyncDutyService) http.HandlerFunc {
 			wrappedErr := err
 
 			switch e := pkgerrors.Cause(wrappedErr); {
-			case errors.Is(e, syncduties.ErrDutiesNotFound):
+			case errors.Is(e, beacon.ErrDutiesNotFound):
 				writeAPIError(w, http.StatusNotFound, "Sync duties not found", wrappedErr)
-			case errors.Is(e, syncduties.ErrSlotTooFarInFuture):
-				writeAPIError(w, http.StatusBadRequest, "Slot is too far in the future", wrappedErr)
-			case errors.Is(e, syncduties.ErrSlotWasMissed):
+			case errors.Is(e, beacon.ErrSlotInFuture):
+				writeAPIError(w, http.StatusBadRequest, "Slot is in the future", wrappedErr)
+			case errors.Is(e, beacon.ErrSlotWasMissed):
 				writeAPIError(w, http.StatusBadRequest, "Slot was missed", wrappedErr)
 			default:
 				writeAPIError(w, http.StatusInternalServerError, "Failed to retrieve sync duties", wrappedErr)
